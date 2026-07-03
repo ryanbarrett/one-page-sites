@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ryan Barrett — One Page Sites</title>
+  <meta name="description" content="A small index of shareable one-page websites and printable tools.">
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f6f4ef;
+      --card: #fffaf0;
+      --text: #1f2933;
+      --muted: #5d6b7a;
+      --accent: #2f6f4e;
+      --accent-2: #d97706;
+      --border: rgba(31, 41, 51, 0.14);
+      --shadow: 0 18px 45px rgba(31, 41, 51, 0.08);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111827;
+        --card: #182231;
+        --text: #f3f4f6;
+        --muted: #b8c2cc;
+        --accent: #7dd3a8;
+        --accent-2: #fbbf24;
+        --border: rgba(243, 244, 246, 0.14);
+        --shadow: 0 18px 45px rgba(0, 0, 0, 0.24);
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(47, 111, 78, 0.18), transparent 32rem),
+        radial-gradient(circle at bottom right, rgba(217, 119, 6, 0.14), transparent 30rem),
+        var(--bg);
+    }
+
+    main {
+      width: min(980px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 56px 0;
+    }
+
+    header {
+      margin-bottom: 32px;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--accent);
+      font-size: 0.85rem;
+      font-weight: 750;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2.1rem, 7vw, 4.6rem);
+      line-height: 0.95;
+      letter-spacing: -0.06em;
+    }
+
+    .lede {
+      max-width: 680px;
+      margin: 18px 0 0;
+      color: var(--muted);
+      font-size: clamp(1.05rem, 2vw, 1.25rem);
+    }
+
+    .grid {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    }
+
+    .card {
+      display: block;
+      padding: 24px;
+      color: inherit;
+      text-decoration: none;
+      background: color-mix(in srgb, var(--card) 92%, transparent);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    .card:hover,
+    .card:focus-visible {
+      transform: translateY(-3px);
+      border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+      box-shadow: 0 22px 55px rgba(31, 41, 51, 0.14);
+      outline: none;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    h2 {
+      margin: 16px 0 8px;
+      font-size: 1.35rem;
+      letter-spacing: -0.025em;
+    }
+
+    .card p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .url {
+      margin-top: 18px;
+      color: var(--accent-2);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.88rem;
+      overflow-wrap: anywhere;
+    }
+
+    footer {
+      margin-top: 36px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="eyebrow">One Page Sites</p>
+      <h1>Shareable pages, tools, and printouts.</h1>
+      <p class="lede">A lightweight index for standalone HTML pages. Add a page, link it here, and share the direct GitHub Pages URL.</p>
+    </header>
+
+    <section class="grid" aria-label="Available pages">
+      <a class="card" href="gardening/alton_direct_sow_planner_2027_mobile_print.html">
+        <span class="tag">Gardening · Print</span>
+        <h2>Alton Direct Sow Planner — 2027 Growing Season</h2>
+        <p>Mobile-friendly printable direct-sow planning page for the 2027 season in Alton.</p>
+        <div class="url">gardening/alton_direct_sow_planner_2027_mobile_print.html</div>
+      </a>
+    </section>
+
+    <footer>
+      Add future one-page sites as folders or HTML files, then list them here.
+    </footer>
+  </main>
+</body>
+</html>
