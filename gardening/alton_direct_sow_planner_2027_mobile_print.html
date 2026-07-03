@@ -159,14 +159,12 @@ main {
   .print-table tbody tr { break-inside: avoid; }
   .print-table tbody tr:nth-child(even) td { background: #f7f7f7; }
   .print-table .plant { width: 10%; font-weight: 700; }
-  .print-table .category { width: 8%; }
-  .print-table .window { width: 11%; }
-  .print-table .date { width: 7%; white-space: nowrap; }
-  .print-table .depth { width: 8%; }
-  .print-table .spacing { width: 9%; }
-  .print-table .soil-temp { width: 8%; }
-  .print-table .germ { width: 8%; }
-  .print-table .notes { width: 31%; }
+  .print-table .category { width: 7%; }
+  .print-table .when { width: 16%; }
+  .print-table .how { width: 18%; }
+  .print-table .spacing { width: 10%; }
+  .print-table .conditions { width: 14%; }
+  .print-table .summary-details { width: 25%; }
 }
 </style>
 </head>
@@ -268,39 +266,49 @@ function render() {
   }
 }
 
+function shortValue(value, fallback = '') {
+  const s = String(value ?? '').trim();
+  return s || fallback;
+}
+
+function summaryBits(r) {
+  const bits = [];
+  if (shortValue(r["Succession"]) && r["Succession"] !== "No") bits.push(`Succession: ${r["Succession"]}`);
+  if (shortValue(r["Cold Stratification"]) && !/^(no|no unless noted)$/i.test(r["Cold Stratification"])) bits.push(`Cold: ${r["Cold Stratification"]}`);
+  if (shortValue(r["Seed Treatment"]) && !/^none/i.test(r["Seed Treatment"])) bits.push(`Prep: ${r["Seed Treatment"]}`);
+  if (shortValue(r["Harvest Window"]) && r["Harvest Window"] !== "See maturity") bits.push(`Harvest: ${r["Harvest Window"]}`);
+  if (shortValue(r["Common Problems"])) bits.push(`Watch: ${r["Common Problems"]}`);
+  if (shortValue(r["Companions"])) bits.push(`Good near: ${r["Companions"]}`);
+  return bits.slice(0, 4).join(' • ');
+}
+
 function renderPrintSheet(rows, shownCount) {
   const printed = rows.length;
   const scope = printSelection.size ? `${printed} selected / ${shownCount} shown` : `${shownCount} shown`;
   printSheetEl.innerHTML = `
     <h1 class="print-title">Alton Direct Sow Planner — 2027 Growing Season</h1>
-    <p class="print-subtitle">Compact print sheet: ${esc(scope)}. Filter/search selections are respected.</p>
+    <p class="print-subtitle">Compact print sheet: ${esc(scope)}. Includes simplified when / how / detail summary. Filter/search selections are respected.</p>
     <table class="print-table">
       <thead>
         <tr>
           <th class="plant">Plant</th>
           <th class="category">Cat.</th>
-          <th class="window">Window</th>
-          <th class="date">Earliest</th>
-          <th class="date">Latest</th>
-          <th class="depth">Depth</th>
+          <th class="when">When</th>
+          <th class="how">How</th>
           <th class="spacing">Spacing</th>
-          <th class="soil-temp">Soil Temp</th>
-          <th class="germ">Germ.</th>
-          <th class="notes">Basic Notes</th>
+          <th class="conditions">Conditions</th>
+          <th class="summary-details">Summary Details</th>
         </tr>
       </thead>
       <tbody>
         ${rows.map(r => `<tr>
           <td class="plant">${esc(r.Plant)}</td>
           <td class="category">${esc(r.Category)}</td>
-          <td class="window">${esc(r["Direct Sow Window"])}</td>
-          <td class="date">${esc(r["Earliest Date"])}</td>
-          <td class="date">${esc(r["Latest Date"])}</td>
-          <td class="depth">${esc(r["Seed Depth"])}</td>
-          <td class="spacing">${esc(r["Plant Spacing"])}</td>
-          <td class="soil-temp">${esc(r["Soil Temp"])}</td>
-          <td class="germ">${esc(r.Germination)}</td>
-          <td class="notes">${esc(r["Direct Sow Notes"])}</td>
+          <td class="when">${esc(`${r["Earliest Date"]} to ${r["Latest Date"]}; ${r["Direct Sow Window"]}`)}</td>
+          <td class="how">${esc(`${r["Seed Depth"]}; ${r["Direct Sow Notes"]}`)}</td>
+          <td class="spacing">${esc(`${r["Plant Spacing"]}; rows/drifts: ${r["Row/Drift Spacing"]}`)}</td>
+          <td class="conditions">${esc(`Soil ${r["Soil Temp"]}; germ. ${r.Germination}; ${r.Sun}; moisture: ${r.Moisture}`)}</td>
+          <td class="summary-details">${esc(summaryBits(r))}</td>
         </tr>`).join('')}
       </tbody>
     </table>`;
