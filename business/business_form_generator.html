@@ -1,0 +1,1030 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Business Form Generator — Quotes, Estimates, Invoices</title>
+  <meta name="description" content="A private, browser-local quote, estimate, and invoice generator with companies, logos, taxes, CSV line item import, and JSON backup.">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f8f7f3;
+      --paper: #fffdf8;
+      --panel: #ffffff;
+      --ink: #20262d;
+      --muted: #6f7b86;
+      --soft: #e9e3d9;
+      --line: rgba(42, 49, 57, 0.12);
+      --accent: #6f8f72;
+      --accent-strong: #426a46;
+      --accent-soft: #edf4ea;
+      --warn: #b96e28;
+      --danger: #a34545;
+      --radius: 18px;
+      --shadow: 0 24px 70px rgba(34, 40, 48, 0.08);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 14% 4%, rgba(111, 143, 114, 0.16), transparent 28rem),
+        radial-gradient(circle at 88% 16%, rgba(185, 110, 40, 0.10), transparent 25rem),
+        var(--bg);
+      font-family: var(--sans);
+      line-height: 1.45;
+    }
+
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+
+    .app-shell {
+      width: min(1500px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 28px 0 52px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+
+    .eyebrow {
+      margin: 0 0 7px;
+      color: var(--accent-strong);
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 780px;
+      font-size: clamp(2rem, 4.8vw, 4.8rem);
+      line-height: 0.95;
+      letter-spacing: -0.065em;
+    }
+
+    .lede {
+      max-width: 740px;
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 1.02rem;
+    }
+
+    .actions, .row, .inline-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .actions { justify-content: flex-end; }
+
+    .btn {
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 10px 15px;
+      color: var(--ink);
+      background: rgba(255,255,255,0.84);
+      box-shadow: 0 8px 24px rgba(34, 40, 48, 0.06);
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+    }
+
+    .btn:hover, .btn:focus-visible {
+      transform: translateY(-1px);
+      border-color: color-mix(in srgb, var(--accent) 58%, var(--line));
+      outline: none;
+    }
+
+    .btn.primary {
+      color: white;
+      background: var(--accent-strong);
+      border-color: var(--accent-strong);
+    }
+
+    .btn.ghost { box-shadow: none; background: transparent; }
+    .btn.danger { color: var(--danger); }
+    .btn.small { min-height: 34px; padding: 7px 11px; font-size: 0.88rem; }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(330px, 440px) minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: color-mix(in srgb, var(--panel) 94%, transparent);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .editor {
+      position: sticky;
+      top: 14px;
+      max-height: calc(100vh - 28px);
+      overflow: auto;
+    }
+
+    .section {
+      padding: 18px;
+      border-bottom: 1px solid var(--line);
+    }
+    .section:last-child { border-bottom: 0; }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    h2, h3 {
+      margin: 0;
+      letter-spacing: -0.03em;
+    }
+
+    h2 { font-size: 1.1rem; }
+    h3 { font-size: 0.98rem; }
+
+    .hint, .micro {
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+    .micro { font-size: 0.78rem; }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 750;
+      letter-spacing: 0.02em;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      min-height: 40px;
+      padding: 10px 11px;
+      color: var(--ink);
+      background: #fffdf8;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      outline: none;
+    }
+
+    textarea { min-height: 76px; resize: vertical; }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(111,143,114,0.16);
+    }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .stack { display: grid; gap: 10px; }
+
+    .company-strip {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .company-pill {
+      flex: 0 0 auto;
+      max-width: 220px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 12px;
+      background: #fffdf8;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .company-pill.active { color: white; background: var(--accent-strong); border-color: var(--accent-strong); }
+
+    .logo-box {
+      display: grid;
+      grid-template-columns: 76px 1fr;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border: 1px dashed var(--line);
+      border-radius: 14px;
+      background: #fffdf8;
+    }
+    .logo-preview {
+      width: 76px;
+      height: 76px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      border-radius: 14px;
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      font-weight: 850;
+    }
+    .logo-preview img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+    .type-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .type-tabs button {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 10px 8px;
+      background: #fffdf8;
+      color: var(--muted);
+      font-weight: 750;
+    }
+    .type-tabs button.active { color: var(--accent-strong); border-color: var(--accent); background: var(--accent-soft); }
+
+    .items-table {
+      display: grid;
+      gap: 8px;
+    }
+    .item-row {
+      display: grid;
+      grid-template-columns: 0.8fr 1.2fr 0.9fr 0.55fr 0.75fr 36px;
+      gap: 7px;
+      align-items: end;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fffdf8;
+    }
+    .item-row textarea { min-height: 40px; }
+    .item-row label { gap: 4px; }
+    .remove-item {
+      width: 36px;
+      min-height: 40px;
+      border: 0;
+      border-radius: 11px;
+      color: var(--danger);
+      background: rgba(163,69,69,0.08);
+    }
+
+    .csv-box {
+      display: none;
+      padding: 12px;
+      margin-top: 10px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: #fffdf8;
+    }
+    .csv-box.show { display: grid; gap: 10px; }
+
+    .preview-wrap {
+      display: grid;
+      gap: 12px;
+    }
+
+    .preview-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+    }
+
+    .doc {
+      max-width: 920px;
+      min-height: 1120px;
+      margin: 0 auto;
+      padding: 54px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      box-shadow: var(--shadow);
+    }
+
+    .doc-head {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 34px;
+      align-items: start;
+      padding-bottom: 26px;
+      border-bottom: 1px solid var(--line);
+    }
+    .brand {
+      display: flex;
+      gap: 16px;
+      align-items: start;
+    }
+    .doc-logo {
+      width: 92px;
+      height: 92px;
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      border-radius: 16px;
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      font-weight: 900;
+      font-size: 1.7rem;
+    }
+    .doc-logo img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .brand h2 { margin-bottom: 8px; font-size: 1.35rem; }
+    .address { color: var(--muted); white-space: pre-wrap; font-size: 0.92rem; }
+
+    .doc-title { text-align: right; }
+    .doc-title h2 {
+      font-size: clamp(2rem, 6vw, 4.1rem);
+      line-height: 0.9;
+      text-transform: uppercase;
+    }
+    .doc-title dl {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 5px 14px;
+      margin: 16px 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    .doc-title dt { font-weight: 760; }
+    .doc-title dd { margin: 0; color: var(--ink); font-family: var(--mono); }
+
+    .billing-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin: 30px 0;
+    }
+    .bill-card h3 {
+      margin-bottom: 8px;
+      color: var(--accent-strong);
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .bill-card div { white-space: pre-wrap; }
+
+    .line-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+    }
+    .line-table th {
+      padding: 11px 10px;
+      color: var(--muted);
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .line-table td {
+      padding: 12px 10px;
+      vertical-align: top;
+      border-bottom: 1px solid var(--line);
+    }
+    .line-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .line-table .desc { color: var(--muted); font-size: 0.85rem; margin-top: 3px; white-space: pre-wrap; }
+
+    .summary {
+      display: grid;
+      grid-template-columns: 1fr minmax(260px, 340px);
+      gap: 28px;
+      margin-top: 26px;
+      align-items: start;
+    }
+    .notes { color: var(--muted); white-space: pre-wrap; }
+    .totals {
+      display: grid;
+      gap: 9px;
+      padding: 16px;
+      border-radius: 16px;
+      background: #f6f2e9;
+    }
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      font-variant-numeric: tabular-nums;
+    }
+    .total-row.grand {
+      margin-top: 4px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+      font-size: 1.25rem;
+      font-weight: 900;
+    }
+
+    .fine-print {
+      margin-top: 34px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      white-space: pre-wrap;
+    }
+
+    .feature-notes {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 16px 18px;
+      display: grid;
+      gap: 8px;
+    }
+    .feature-notes ul { margin: 0; padding-left: 20px; color: var(--muted); }
+
+    dialog {
+      width: min(780px, calc(100% - 28px));
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 0;
+      color: var(--ink);
+      background: var(--panel);
+      box-shadow: 0 30px 90px rgba(0,0,0,0.22);
+    }
+    dialog::backdrop { background: rgba(30,35,40,0.38); backdrop-filter: blur(3px); }
+    .modal-body { padding: 20px; display: grid; gap: 14px; }
+    .modal-head { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      max-width: min(460px, calc(100% - 36px));
+      padding: 12px 14px;
+      border-radius: 14px;
+      color: white;
+      background: #26312a;
+      box-shadow: 0 18px 50px rgba(0,0,0,0.18);
+      transform: translateY(16px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease, transform 180ms ease;
+      z-index: 20;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    .hidden-file { display: none; }
+
+    @media (max-width: 1050px) {
+      .workspace { grid-template-columns: 1fr; }
+      .editor { position: static; max-height: none; }
+      .doc { padding: 34px; min-height: auto; }
+    }
+
+    @media (max-width: 720px) {
+      .topbar { display: grid; }
+      .actions { justify-content: start; }
+      .grid-2, .grid-3, .doc-head, .billing-grid, .summary { grid-template-columns: 1fr; }
+      .doc-title { text-align: left; }
+      .item-row { grid-template-columns: 1fr; }
+      .remove-item { width: 100%; }
+      .doc { padding: 22px; }
+      .line-table { font-size: 0.82rem; }
+      .line-table th:nth-child(1), .line-table td:nth-child(1) { display: none; }
+    }
+
+    @media print {
+      @page { size: letter; margin: 0.45in; }
+      body { background: #fff; }
+      .app-shell { width: auto; margin: 0; padding: 0; }
+      .topbar, .editor, .preview-toolbar, .feature-notes, .toast, dialog { display: none !important; }
+      .workspace, .preview-wrap { display: block; }
+      .doc {
+        max-width: none;
+        min-height: auto;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        box-shadow: none;
+        background: #fff;
+      }
+      .doc-logo { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .line-table th, .line-table td { padding: 8px 6px; }
+      .totals { background: #f5f5f5; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      a[href]::after { content: ""; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Browser-local business forms</p>
+        <h1>Quick quotes, estimates, and invoices.</h1>
+        <p class="lede">A light, private one-page tool for low-volume one-off documents. Companies, logos, draft data, and backups stay in this browser unless you export JSON.</p>
+      </div>
+      <div class="actions" aria-label="Document actions">
+        <button class="btn" id="settingsBtn" type="button">Settings</button>
+        <button class="btn" id="exportBtn" type="button">Export JSON</button>
+        <button class="btn" id="importBtn" type="button">Import JSON</button>
+        <button class="btn primary" id="printBtn" type="button">Print / Save PDF</button>
+      </div>
+    </header>
+
+    <div class="workspace">
+      <form class="panel editor" id="editor" autocomplete="on">
+        <section class="section">
+          <div class="section-head">
+            <div><h2>Company</h2><div class="hint">Saved locally. Use different companies for different senders.</div></div>
+            <button class="btn small" id="newCompanyBtn" type="button">New</button>
+          </div>
+          <div class="company-strip" id="companyStrip" aria-label="Saved companies"></div>
+          <div class="stack" style="margin-top:12px">
+            <label>Company name<input id="companyName" placeholder="Acme Services LLC"></label>
+            <label>Address / contact<textarea id="companyAddress" placeholder="123 Main St&#10;Alton, IL 62002&#10;hello@example.com · 555-123-4567"></textarea></label>
+            <div class="logo-box">
+              <div class="logo-preview" id="logoPreview">Logo</div>
+              <div class="stack">
+                <label>Logo upload<input id="logoInput" type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp"></label>
+                <div class="micro">Recommended: PNG/SVG/WebP, transparent background, square or wide mark. Minimum 300×300 px. Maximum practical file size 500 KB; the app will reject images over 1 MB because browser storage is limited.</div>
+                <button class="btn small ghost" id="clearLogoBtn" type="button">Clear logo</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head"><div><h2>Document</h2><div class="hint">Print opens your browser’s Save as PDF flow.</div></div></div>
+          <div class="type-tabs" role="tablist" aria-label="Document type">
+            <button type="button" data-doc-type="quote">Quote</button>
+            <button type="button" data-doc-type="estimate">Estimate</button>
+            <button type="button" data-doc-type="invoice">Invoice</button>
+          </div>
+          <div class="grid-2" style="margin-top:12px">
+            <label>Document #<input id="docNumber" placeholder="INV-1001"></label>
+            <label>Date<input id="docDate" type="date"></label>
+            <label>Due / valid until<input id="dueDate" type="date"></label>
+            <label>Currency<select id="currency"><option value="USD">USD</option><option value="CAD">CAD</option><option value="EUR">EUR</option><option value="GBP">GBP</option></select></label>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head"><div><h2>Customer</h2><div class="hint">Who this document is for.</div></div></div>
+          <div class="stack">
+            <label>Bill to<textarea id="client" placeholder="Customer name&#10;Customer address&#10;customer@example.com"></textarea></label>
+            <label>Project / reference<input id="project" placeholder="Kitchen repair, website update, March lawn work"></label>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <div><h2>Line items</h2><div class="hint">Add manually or paste CSV.</div></div>
+            <div class="inline-row"><button class="btn small" id="addItemBtn" type="button">Add item</button><button class="btn small ghost" id="csvToggleBtn" type="button">Paste CSV</button></div>
+          </div>
+          <div class="csv-box" id="csvBox">
+            <label>CSV line items<textarea id="csvInput" placeholder="item number,item,description,price,quantity&#10;A-100,Consulting,Initial planning session,125,2"></textarea></label>
+            <div class="micro">Accepted columns: item number, item, description, price, quantity. Header row is optional. Commas inside fields should be quoted.</div>
+            <div class="inline-row"><button class="btn small" id="importCsvBtn" type="button">Import CSV rows</button><button class="btn small ghost" id="sampleCsvBtn" type="button">Use sample</button></div>
+          </div>
+          <div class="items-table" id="itemsTable" style="margin-top:12px"></div>
+        </section>
+
+        <section class="section">
+          <div class="section-head"><div><h2>Totals & terms</h2><div class="hint">Taxes and discount are optional.</div></div></div>
+          <div class="grid-3">
+            <label>Tax rate %<input id="taxRate" type="number" min="0" step="0.001" placeholder="8.25"></label>
+            <label>Discount<input id="discount" type="number" min="0" step="0.01" placeholder="0.00"></label>
+            <label>Shipping / fees<input id="shipping" type="number" min="0" step="0.01" placeholder="0.00"></label>
+          </div>
+          <div class="stack" style="margin-top:10px">
+            <label>Notes<textarea id="notes" placeholder="Thank you for your business. Please make checks payable to..."></textarea></label>
+            <label>Terms / fine print<textarea id="terms" placeholder="Invoice due upon receipt. Quotes and estimates are valid until the date shown and may change if scope changes."></textarea></label>
+          </div>
+        </section>
+      </form>
+
+      <section class="preview-wrap" aria-label="Document preview">
+        <div class="panel preview-toolbar">
+          <div><strong id="autosaveStatus">Saved locally</strong><div class="micro">Private by default · no backend · no account</div></div>
+          <div class="inline-row"><button class="btn small" id="duplicateBtn" type="button">Duplicate doc</button><button class="btn small danger" id="resetDocBtn" type="button">Reset doc</button></div>
+        </div>
+
+        <article class="doc" id="documentPreview" aria-label="Printable document"></article>
+
+        <aside class="panel feature-notes">
+          <h2>Other useful document types to add later</h2>
+          <ul>
+            <li><strong>Receipt / paid invoice</strong> — proof of payment after a job.</li>
+            <li><strong>Work order</strong> — internal job sheet with scope, materials, and authorization.</li>
+            <li><strong>Credit memo</strong> — simple adjustment or refund record.</li>
+            <li><strong>Delivery / packing slip</strong> — ships with goods, usually without prices.</li>
+            <li><strong>Purchase order</strong> — request to buy from a vendor.</li>
+          </ul>
+        </aside>
+      </section>
+    </div>
+  </main>
+
+  <dialog id="settingsDialog">
+    <div class="modal-body">
+      <div class="modal-head">
+        <div><h2>Settings & local data</h2><div class="hint">Everything is stored in this browser’s localStorage. Export JSON before clearing browser data or switching devices.</div></div>
+        <button class="btn small ghost" id="closeSettingsBtn" type="button">Close</button>
+      </div>
+      <div class="grid-2">
+        <label>Default tax rate %<input id="defaultTaxRate" type="number" min="0" step="0.001"></label>
+        <label>Default payment terms<select id="defaultTermsPreset"><option value="Due upon receipt">Due upon receipt</option><option value="Net 7">Net 7</option><option value="Net 15">Net 15</option><option value="Net 30">Net 30</option><option value="Custom">Custom</option></select></label>
+      </div>
+      <label>Default fine print<textarea id="defaultTermsText"></textarea></label>
+      <div class="panel" style="padding:14px; box-shadow:none; background:#fffdf8">
+        <h3>Good low-infrastructure features included</h3>
+        <ul class="hint" style="margin:8px 0 0; padding-left:20px">
+          <li>Multiple sender companies with locally stored logos.</li>
+          <li>Tax, discount, shipping/fees, and currency formatting.</li>
+          <li>CSV paste/import for item lists.</li>
+          <li>JSON export/import for backup or moving browsers.</li>
+          <li>Print-friendly invoice layout for browser Save as PDF.</li>
+        </ul>
+      </div>
+      <div class="actions"><button class="btn danger" id="wipeAllBtn" type="button">Wipe all local data</button><button class="btn primary" id="saveSettingsBtn" type="button">Save settings</button></div>
+    </div>
+  </dialog>
+
+  <input class="hidden-file" id="importFile" type="file" accept="application/json,.json">
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const STORAGE_KEY = 'businessFormGenerator.v1';
+    const $ = (id) => document.getElementById(id);
+    const moneyFields = ['price','qty'];
+
+    const defaultState = () => ({
+      settings: {
+        defaultTaxRate: 0,
+        defaultTermsPreset: 'Due upon receipt',
+        defaultTermsText: 'Payment due upon receipt unless otherwise stated. Quotes and estimates are non-binding and may change if scope, materials, or schedule changes.'
+      },
+      companies: [{ id: crypto.randomUUID(), name: 'My Company', address: '', logo: '' }],
+      activeCompanyId: null,
+      draft: {
+        type: 'invoice', number: 'INV-1001', date: today(), dueDate: '', currency: 'USD', client: '', project: '',
+        items: [{ number: '', item: 'Service', description: '', price: 0, qty: 1 }],
+        taxRate: 0, discount: 0, shipping: 0, notes: 'Thank you for your business.', terms: ''
+      }
+    });
+
+    let state = loadState();
+    if (!state.activeCompanyId && state.companies[0]) state.activeCompanyId = state.companies[0].id;
+    let saveTimer = null;
+
+    function today() { return new Date().toISOString().slice(0,10); }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return defaultState();
+        const parsed = JSON.parse(raw);
+        const base = defaultState();
+        return {
+          ...base,
+          ...parsed,
+          settings: { ...base.settings, ...(parsed.settings || {}) },
+          draft: { ...base.draft, ...(parsed.draft || {}), items: (parsed.draft && parsed.draft.items && parsed.draft.items.length) ? parsed.draft.items : base.draft.items }
+        };
+      } catch (err) {
+        console.warn(err);
+        return defaultState();
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      $('autosaveStatus').textContent = 'Saved locally ' + new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+    }
+
+    function scheduleSave() {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveState, 160);
+    }
+
+    function toast(msg) {
+      const el = $('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 2500);
+    }
+
+    function activeCompany() {
+      return state.companies.find(c => c.id === state.activeCompanyId) || state.companies[0];
+    }
+
+    function setField(id, value) { const el = $(id); if (el) el.value = value ?? ''; }
+    function numeric(value) { const n = Number(value); return Number.isFinite(n) ? n : 0; }
+    function fmt(value) {
+      try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: state.draft.currency || 'USD' }).format(numeric(value)); }
+      catch { return '$' + numeric(value).toFixed(2); }
+    }
+    function esc(value) {
+      return String(value ?? '').replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
+    }
+
+    function renderCompanyStrip() {
+      const strip = $('companyStrip');
+      strip.innerHTML = '';
+      state.companies.forEach(company => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'company-pill' + (company.id === state.activeCompanyId ? ' active' : '');
+        btn.textContent = company.name || 'Unnamed company';
+        btn.addEventListener('click', () => { state.activeCompanyId = company.id; renderAll(); scheduleSave(); });
+        strip.appendChild(btn);
+      });
+    }
+
+    function renderCompanyForm() {
+      const company = activeCompany();
+      setField('companyName', company?.name || '');
+      setField('companyAddress', company?.address || '');
+      const logo = $('logoPreview');
+      if (company?.logo) logo.innerHTML = `<img src="${company.logo}" alt="${esc(company.name || 'Company')} logo">`;
+      else logo.textContent = 'Logo';
+    }
+
+    function renderDocForm() {
+      document.querySelectorAll('[data-doc-type]').forEach(btn => btn.classList.toggle('active', btn.dataset.docType === state.draft.type));
+      setField('docNumber', state.draft.number);
+      setField('docDate', state.draft.date);
+      setField('dueDate', state.draft.dueDate);
+      setField('currency', state.draft.currency);
+      setField('client', state.draft.client);
+      setField('project', state.draft.project);
+      setField('taxRate', state.draft.taxRate);
+      setField('discount', state.draft.discount);
+      setField('shipping', state.draft.shipping);
+      setField('notes', state.draft.notes);
+      setField('terms', state.draft.terms || state.settings.defaultTermsText);
+    }
+
+    function renderItems() {
+      const table = $('itemsTable');
+      table.innerHTML = '';
+      state.draft.items.forEach((it, idx) => {
+        const row = document.createElement('div');
+        row.className = 'item-row';
+        row.innerHTML = `
+          <label>#<input data-item="number" data-idx="${idx}" value="${esc(it.number)}" placeholder="A-100"></label>
+          <label>Item<input data-item="item" data-idx="${idx}" value="${esc(it.item)}" placeholder="Labor"></label>
+          <label>Description<textarea data-item="description" data-idx="${idx}" placeholder="Details">${esc(it.description)}</textarea></label>
+          <label>Price<input data-item="price" data-idx="${idx}" type="number" step="0.01" value="${esc(it.price)}"></label>
+          <label>Qty<input data-item="qty" data-idx="${idx}" type="number" step="0.01" value="${esc(it.qty)}"></label>
+          <button class="remove-item" data-remove="${idx}" type="button" aria-label="Remove item">×</button>`;
+        table.appendChild(row);
+      });
+    }
+
+    function totals() {
+      const subtotal = state.draft.items.reduce((sum, it) => sum + numeric(it.price) * numeric(it.qty), 0);
+      const discount = numeric(state.draft.discount);
+      const taxable = Math.max(0, subtotal - discount);
+      const tax = taxable * numeric(state.draft.taxRate) / 100;
+      const shipping = numeric(state.draft.shipping);
+      const total = taxable + tax + shipping;
+      return { subtotal, discount, taxable, tax, shipping, total };
+    }
+
+    function docLabel() {
+      return ({ quote: 'Quote', estimate: 'Estimate', invoice: 'Invoice' }[state.draft.type] || 'Invoice');
+    }
+
+    function renderPreview() {
+      const company = activeCompany() || {};
+      const t = totals();
+      const logoHtml = company.logo ? `<img src="${company.logo}" alt="${esc(company.name || 'Company')} logo">` : esc((company.name || 'Co').slice(0,2).toUpperCase());
+      const validLabel = state.draft.type === 'invoice' ? 'Due' : 'Valid until';
+      const rows = state.draft.items.map(it => {
+        const line = numeric(it.price) * numeric(it.qty);
+        return `<tr>
+          <td>${esc(it.number)}</td>
+          <td><strong>${esc(it.item || 'Item')}</strong>${it.description ? `<div class="desc">${esc(it.description)}</div>` : ''}</td>
+          <td class="num">${fmt(it.price)}</td>
+          <td class="num">${numeric(it.qty).toLocaleString()}</td>
+          <td class="num">${fmt(line)}</td>
+        </tr>`;
+      }).join('');
+
+      $('documentPreview').innerHTML = `
+        <header class="doc-head">
+          <div class="brand">
+            <div class="doc-logo">${logoHtml}</div>
+            <div><h2>${esc(company.name || 'Your Company')}</h2><div class="address">${esc(company.address || 'Add company address and contact details')}</div></div>
+          </div>
+          <div class="doc-title">
+            <h2>${esc(docLabel())}</h2>
+            <dl>
+              <dt>No.</dt><dd>${esc(state.draft.number || '—')}</dd>
+              <dt>Date</dt><dd>${esc(state.draft.date || '—')}</dd>
+              <dt>${validLabel}</dt><dd>${esc(state.draft.dueDate || '—')}</dd>
+            </dl>
+          </div>
+        </header>
+        <section class="billing-grid">
+          <div class="bill-card"><h3>Bill to</h3><div>${esc(state.draft.client || 'Customer name and address')}</div></div>
+          <div class="bill-card"><h3>Project / reference</h3><div>${esc(state.draft.project || '—')}</div></div>
+        </section>
+        <table class="line-table">
+          <thead><tr><th>Item #</th><th>Item</th><th class="num">Price</th><th class="num">Qty</th><th class="num">Total</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="5">No line items yet.</td></tr>'}</tbody>
+        </table>
+        <section class="summary">
+          <div class="notes">${esc(state.draft.notes || '')}</div>
+          <div class="totals">
+            <div class="total-row"><span>Subtotal</span><strong>${fmt(t.subtotal)}</strong></div>
+            ${t.discount ? `<div class="total-row"><span>Discount</span><strong>−${fmt(t.discount)}</strong></div>` : ''}
+            <div class="total-row"><span>Tax ${numeric(state.draft.taxRate)}%</span><strong>${fmt(t.tax)}</strong></div>
+            ${t.shipping ? `<div class="total-row"><span>Shipping / fees</span><strong>${fmt(t.shipping)}</strong></div>` : ''}
+            <div class="total-row grand"><span>Total</span><strong>${fmt(t.total)}</strong></div>
+          </div>
+        </section>
+        <footer class="fine-print">${esc(state.draft.terms || state.settings.defaultTermsText || '')}</footer>`;
+    }
+
+    function renderSettings() {
+      setField('defaultTaxRate', state.settings.defaultTaxRate);
+      setField('defaultTermsPreset', state.settings.defaultTermsPreset);
+      setField('defaultTermsText', state.settings.defaultTermsText);
+    }
+
+    function renderAll() {
+      renderCompanyStrip();
+      renderCompanyForm();
+      renderDocForm();
+      renderItems();
+      renderPreview();
+      renderSettings();
+    }
+
+    function bindInputs() {
+      $('companyName').addEventListener('input', e => { activeCompany().name = e.target.value; renderCompanyStrip(); renderPreview(); scheduleSave(); });
+      $('companyAddress').addEventListener('input', e => { activeCompany().address = e.target.value; renderPreview(); scheduleSave(); });
+      $('clearLogoBtn').addEventListener('click', () => { activeCompany().logo = ''; renderCompanyForm(); renderPreview(); scheduleSave(); });
+      $('logoInput').addEventListener('change', handleLogo);
+
+      ['docNumber','docDate','dueDate','currency','client','project','taxRate','discount','shipping','notes','terms'].forEach(id => {
+        $(id).addEventListener('input', e => {
+          const map = { docNumber:'number', docDate:'date' };
+          state.draft[map[id] || id] = e.target.value;
+          renderPreview(); scheduleSave();
+        });
+      });
+      $('currency').addEventListener('change', renderPreview);
+
+      document.querySelectorAll('[data-doc-type]').forEach(btn => btn.addEventListener('click', () => {
+        state.draft.type = btn.dataset.docType;
+        if (!state.draft.number || /^(INV|EST|QUO)-/.test(state.draft.number)) {
+          const prefix = state.draft.type === 'invoice' ? 'INV' : state.draft.type === 'estimate' ? 'EST' : 'QUO';
+          state.draft.number = `${prefix}-${new Date().getFullYear()}001`;
+        }
+        renderAll(); scheduleSave();
+      }));
+
+      $('itemsTable').addEventListener('input', e => {
+        const field = e.target.dataset.item;
+        if (!field) return;
+        const idx = Number(e.target.dataset.idx);
+        state.draft.items[idx][field] = moneyFields.includes(field) ? numeric(e.target.value) : e.target.value;
+        renderPreview(); scheduleSave();
+      });
+      $('itemsTable').addEventListener('click', e => {
+        const idx = e.target.dataset.remove;
+        if (idx === undefined) return;
+        state.draft.items.splice(Number(idx), 1);
+        if (!state.draft.items.length) state.draft.items.push({ number:'', item:'', description:'', price:0, qty:1 });
+        renderItems(); renderPreview(); scheduleSave();
+      });
+
+      $('addItemBtn').addEventListener('click', () => { state.draft.items.push({ number:'', item:'', description:'', price:0, qty:1 }); renderItems(); renderPreview(); scheduleSave(); });
+      $('csvToggleBtn').addEventListener('click', () => $('csvBox').classList.toggle('show'));
+      $('sampleCsvBtn').addEventListener('click', () => { $('csvInput').value = 'item number,item,description,price,quantity\nA-100,Consulting,Initial planning session,125,2\nM-210,Materials,Parts and supplies,48.50,1'; });
+      $('importCsvBtn').addEventListener('click', importCsv);
+
+      $('newCompanyBtn').addEventListener('click', () => {
+        const company = { id: crypto.randomUUID(), name: 'New Company', address: '', logo: '' };
+        state.companies.push(company); state.activeCompanyId = company.id; renderAll(); scheduleSave();
+      });
+
+      $('printBtn').addEventListener('click', () => window.print());
+      $('duplicateBtn').addEventListener('click', () => { state.draft.number = bumpNumber(state.draft.number); state.draft.date = today(); renderAll(); scheduleSave(); toast('Duplicated as a fresh document.'); });
+      $('resetDocBtn').addEventListener('click', () => { if (confirm('Reset current document fields? Companies stay saved.')) { const keep = defaultState().draft; keep.taxRate = state.settings.defaultTaxRate; keep.terms = state.settings.defaultTermsText; state.draft = keep; renderAll(); scheduleSave(); } });
+
+      $('settingsBtn').addEventListener('click', () => $('settingsDialog').showModal());
+      $('closeSettingsBtn').addEventListener('click', () => $('settingsDialog').close());
+      $('saveSettingsBtn').addEventListener('click', saveSettingsFromDialog);
+      $('wipeAllBtn').addEventListener('click', wipeAll);
+      $('exportBtn').addEventListener('click', exportJson);
+      $('importBtn').addEventListener('click', () => $('importFile').click());
+      $('importFile').addEventListener('change', importJson);
+    }
+
+    function bumpNumber(value) {
+      const text = String(value || 'DOC-1000');
+      const match = text.match(/(.*?)(\d+)$/);
+      if (!match) return text + '-copy';
+      const next = String(Number(match[2]) + 1).padStart(match[2].length, '0');
+      return match[1] + next;
+    }
+
+    function handleLogo(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (file.size > 1024 * 1024) { toast('Logo rejected: keep files under 1 MB; 500 KB or less is better.'); e.target.value = ''; return; }
+      const reader = new FileReader();
+      reader.onload = () => { activeCompany().logo = reader.result; renderCompanyForm(); renderPreview(); scheduleSave(); toast('Logo saved locally.'); };
+      reader.readAsDataURL(file);
+    }
+
+    function parseCsv(text) {
+      const rows = []; let row = [], field = '', quoted = false;
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i], next = text[i+1];
+        if (quoted && ch === '"' && next === '"') { field += '"'; i++; }
+        else if (ch === '"') quoted = !quoted;
+        else if (ch === ',' && !quoted) { row.push(field.trim()); field = ''; }
+        else if ((ch === '\n' || ch === '\r') && !quoted) { if (ch === '\r' && next === '\n') i++; row.push(field.trim()); if (row.some(Boolean)) rows.push(row); row = []; field = ''; }
+        else field += ch;
+      }
+      row.push(field.trim()); if (row.some(Boolean)) rows.push(row);
+      return rows;
+    }
+
+    function importCsv() {
+      const rows = parseCsv($('csvInput').value);
+      if (!rows.length) return toast('No CSV rows found.');
+      const header = rows[0].map(c => c.toLowerCase());
+      const hasHeader = header.some(c => c.includes('price') || c.includes('quantity') || c === 'item');
+      const body = hasHeader ? rows.slice(1) : rows;
+      const index = (names, fallback) => names.map(n => header.indexOf(n)).find(i => i >= 0) ?? fallback;
+      const idx = {
+        number: hasHeader ? index(['item number','number','#','sku'], 0) : 0,
+        item: hasHeader ? index(['item','name','title'], 1) : 1,
+        description: hasHeader ? index(['description','desc','details'], 2) : 2,
+        price: hasHeader ? index(['price','rate','unit price'], 3) : 3,
+        qty: hasHeader ? index(['quantity','qty','hours'], 4) : 4
+      };
+      const imported = body.map(r => ({ number:r[idx.number] || '', item:r[idx.item] || '', description:r[idx.description] || '', price:numeric(r[idx.price]), qty:numeric(r[idx.qty] || 1) })).filter(r => r.item || r.description || r.price);
+      if (!imported.length) return toast('CSV parsed, but no usable rows were found.');
+      state.draft.items = state.draft.items.length === 1 && !state.draft.items[0].item ? imported : state.draft.items.concat(imported);
+      renderItems(); renderPreview(); scheduleSave(); toast(`Imported ${imported.length} CSV row${imported.length === 1 ? '' : 's'}.`);
+    }
+
+    function saveSettingsFromDialog() {
+      state.settings.defaultTaxRate = numeric($('defaultTaxRate').value);
+      state.settings.defaultTermsPreset = $('defaultTermsPreset').value;
+      state.settings.defaultTermsText = $('defaultTermsText').value;
+      if (!state.draft.taxRate) state.draft.taxRate = state.settings.defaultTaxRate;
+      if (!state.draft.terms) state.draft.terms = state.settings.defaultTermsText;
+      renderAll(); saveState(); $('settingsDialog').close(); toast('Settings saved.');
+    }
+
+    function exportJson() {
+      saveState();
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `business-form-generator-backup-${today()}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    function importJson(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const imported = JSON.parse(reader.result);
+          if (!imported || !Array.isArray(imported.companies) || !imported.draft) throw new Error('Backup is missing companies or draft.');
+          state = imported;
+          if (!state.activeCompanyId && state.companies[0]) state.activeCompanyId = state.companies[0].id;
+          renderAll(); saveState(); toast('JSON backup imported.');
+        } catch (err) { toast('Import failed: ' + err.message); }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    }
+
+    function wipeAll() {
+      if (!confirm('Wipe all companies, logos, settings, and draft data from this browser? Export JSON first if you need a backup.')) return;
+      localStorage.removeItem(STORAGE_KEY);
+      state = defaultState();
+      state.activeCompanyId = state.companies[0].id;
+      renderAll(); saveState(); $('settingsDialog').close(); toast('Local data wiped.');
+    }
+
+    bindInputs();
+    if (!state.draft.terms) state.draft.terms = state.settings.defaultTermsText;
+    renderAll();
+    saveState();
+  </script>
+</body>
+</html>
